@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Control v17.1 (con Manual de Recuperación Mejorado)</title>
+    <style>
+        :root {
+            --theme-color-windows: #0d6efd;
+            --theme-color-kubuntu: #198754;
+            --current-theme-color: var(--theme-color-kubuntu);
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background-color: #f8f9fa; color: #212529; }
+        
+        .sticky-top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 20px; background-color: var(--current-theme-color);
+            color: white; transition: background-color 0.3s;
+            position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .sticky-top-bar h1 { color: white; border: none; margin: 0; font-size: 1.5em; }
+        .selectors-container { display: flex; align-items: center; gap: 15px; }
+        .selectors-container label { margin: 0; font-weight: normal; color: white; }
+        .selectors-container select { margin-top: 0; width: 220px; }
+        
+        .container { max-width: 900px; margin: 20px auto; }
+        .workflow-box, .setup-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px;}
+        h2, h3, h4 { color: var(--current-theme-color); border-bottom: 2px solid #e9ecef; padding-bottom: 10px; transition: color 0.3s; }
+        label { font-weight: bold; display: block; margin-top: 15px; }
+        input[type="text"], select { width: 95%; padding: 8px; margin-top: 5px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; }
+        input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
+        .command-box { background-color: #e9ecef; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; margin-top: 10px; font-family: "Courier New", monospace; white-space: pre-wrap; word-wrap: break-word; position: relative; }
+        .copy-btn { position: absolute; top: 10px; right: 10px; padding: 5px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .copy-btn:hover { background-color: #333; }
+        .action-btn { display: inline-block; padding: 10px 15px; margin-top: 10px; font-size: 1em; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-right: 10px; }
+        .action-btn.save { background-color: var(--current-theme-color); }
+        .action-btn.clone { background-color: #0dcaf0; color: #000;}
+        .action-btn.edit { background-color: #ffc107; color: #000; }
+        .action-btn.danger { background-color: #dc3545; }
+        .action-btn:hover { opacity: 0.8; }
+        #taskForm { border-top: 2px solid #e9ecef; margin-top: 20px; padding-top: 15px; }
+        p, li { color: #6c757d; line-height: 1.6; }
+        details { border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-top: 20px; background-color: #fff; }
+        summary { font-weight: bold; font-size: 1.2em; cursor: pointer; color: var(--current-theme-color); transition: color 0.3s;}
+        code { color: #d63384; }
+        .placeholder-ip, .placeholder-date, .placeholder-key { color: #d63384; font-weight: bold; }
+        .explanation { background-color: #f8f9fa; border-left: 4px solid var(--current-theme-color); padding: 10px; margin-top: 10px; border-radius: 4px; transition: border-left-color 0.3s;}
+        .warning { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 10px; border-radius: 4px;}
+        .danger { background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 10px; margin-top: 10px; border-radius: 4px;}
+        optgroup { font-weight: bold; font-style: italic; background-color: #f8f9fa;}
+        .move-direction { margin-top: 15px; }
+        .move-direction label { display: inline; margin-right: 20px; font-weight: normal; }
+    </style>
+</head>
+<body>
+
+<div class="sticky-top-bar">
+    <h1 id="main-title">🚀 Panel de Control</h1>
+    <div class="selectors-container">
+        <label for="osSelector">SO:</label>
+        <select id="osSelector" onchange="updateAll()">
+            <option value="kubuntu">Kubuntu (Linux)</option>
+            <option value="windows">Windows</option>
+        </select>
+        
+        <label for="syncSelector">Tarea:</label>
+        <select id="syncSelector" onchange="updateAll()"></select>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="workflow-box">
+        <h2>PASO 1: Sincronización Principal de Archivos</h2>
+        <p class="explanation">Usa <strong>SUBIR</strong> para guardar tus cambios en la nube y <strong>BAJAR</strong> para actualizar tu máquina local desde la nube.</p>
+        <label for="localPath">Ruta Local (en esta máquina):</label>
+        <input type="text" id="localPath" oninput="updateCommands()">
+        <label for="remotePath">Ruta Remota (en la nube):</label>
+        <input type="text" id="remotePath" oninput="updateCommands()">
+
+        <div class="grid-container">
+            <div><h3>▶️ SUBIR a la Nube</h3><div class="command-box"><code id="syncUpCommand"></code><button class="copy-btn" onclick="copyCommand('syncUpCommand')">Copiar</button></div></div>
+            <div><h3>◀️ BAJAR desde la Nube</h3><div class="command-box"><code id="syncDownCommand"></code><button class="copy-btn" onclick="copyCommand('syncDownCommand')">Copiar</button></div></div>
+        </div>
+    </div>
+    
+    <div class="setup-box">
+        <details>
+            <summary>PASO 2: Administrar Tareas de Sincronización</summary>
+            <p>Aquí puedes añadir, clonar, editar o eliminar tareas para la sincronización de archivos del PASO 1.</p>
+            <button id="showNewTaskFormBtn" class="action-btn save">➕ Añadir Nueva</button>
+            <button id="cloneTaskBtn" class="action-btn clone">➕ Crear Tarea Basada en...</button>
+            <button id="editTaskBtn" class="action-btn edit">✏️ Editar Tarea</button>
+            <button id="deleteTaskBtn" class="action-btn danger">🗑️ Borrar Tarea</button>
+            
+            <form id="taskForm" style="display:none;">
+                <h3 id="formTitle">Definir Nueva Tarea</h3>
+                <label for="taskName">Nombre para el menú (Ej: Mis Documentos)</label>
+                <input type="text" id="taskName" placeholder="Un nombre descriptivo y corto">
+                
+                <label for="taskKey">ID único (Ej: mis_documentos)</label>
+                <input type="text" id="taskKey" placeholder="En minúsculas, sin espacios ni caracteres raros">
+
+                <label for="taskGroup">Grupo (Ej: PERSONAL)</label>
+                <input type="text" id="taskGroup" placeholder="Opcional. Para agrupar en el menú.">
+
+                <label for="taskRemote">Ruta Remota (Ej: B2:mi-nube/documentos)</label>
+                <input type="text" id="taskRemote" placeholder="Ruta completa en la nube">
+                
+                <label for="taskLocalWin">Ruta Local en Windows</label>
+                <input type="text" id="taskLocalWin" placeholder="Ej: %USERPROFILE%\\Documents">
+                
+                <label for="taskLocalKubuntu">Ruta Local en Kubuntu/Linux</label>
+                <input type="text" id="taskLocalKubuntu" placeholder="Ej: $HOME/Documents">
+                
+                <button type="button" id="saveTaskBtn" class="action-btn save">💾 Guardar Tarea</button>
+                <button type="button" id="cancelTaskBtn" class="action-btn danger">Cancelar</button>
+            </form>
+        </details>
+    </div>
+
+    <div class="setup-box">
+        <details>
+            <summary>PASO 3: Guía de Instalación y Credenciales</summary>
+            <h3>Credenciales de Backblaze B2</h3>
+            <label for="keyID">keyID:</label>
+            <input type="text" id="keyID" placeholder="Pega aquí tu keyID" oninput="updateAll()">
+            <label for="applicationKey">applicationKey:</label>
+            <input type="text" id="applicationKey" placeholder="Pega aquí tu applicationKey" oninput="updateAll()">
+            <button class="action-btn save" onclick="savePreferences()">💾 Guardar Preferencias</button>
+            <hr style="margin-top: 30px;">
+            
+            <h3>Guía de Instalación de Rclone</h3>
+            <div id="installWindows" style="display:none;">
+                <h4><strong>En Windows:</strong></h4>
+                <p>Descarga el <a href="https://rclone.org/downloads/" target="_blank">.zip de rclone</a>, descomprímelo y mueve <code>rclone.exe</code> a <code>C:\rclone</code>.</p>
+            </div>
+            <div id="installKubuntu">
+                <h4><strong>En Kubuntu/Linux:</strong></h4>
+                <p>Abre la Terminal y ejecuta: <code class="command-box" style="display: block; padding: 10px;">sudo -v ; curl https://rclone.org/install.sh | sudo bash</code></p>
+            </div>
+            <h4><strong>Configurar Conexión a Backblaze (un solo paso por máquina):</strong></h4>
+            <p>Abre una consola (cmd/Terminal) y ejecuta <code id="configCommand"></code>. Sigue el asistente con estas respuestas:</p>
+            <ul>
+                <li><b>New remote:</b> n</li><li><b>name:</b> B2</li><li><b>Storage:</b> El número de "Backblaze B2".</li>
+                <li><b>account:</b> <code id="keyIdDisplay"></code></li><li><b>key:</b> <code id="appKeyDisplay"></code></li>
+                <li><b>Resto de opciones:</b> Pulsa Enter en cada una.</li><li><b>Keep remote?:</b> y</li><li><b>Quit:</b> q</li>
+            </ul>
+        </details>
+    </div>
+
+    <div class="setup-box">
+        <details>
+            <summary>PASO 4: Herramientas de Verificación y Mantenimiento</summary>
+            <h3>❓ Comprobar si la nube ya está configurada</h3>
+             <div class="command-box"><code id="listRemotesCommand"></code><button class="copy-btn" onclick="copyCommand('listRemotesCommand')">Copiar</button></div>
+            <h3>✅ Comprobar Diferencias (Modo Seguro)</h3>
+            <p>Compara la carpeta local con la nube, pero <strong>no modifica nada</strong>.</p>
+             <div class="command-box"><code id="checkCommand"></code><button class="copy-btn" onclick="copyCommand('checkCommand')">Copiar</button></div>
+            <h3>💡 Modo de Prueba (Dry Run)</h3>
+            <p>Simula una sincronización de SUBIDA sin tocar nada.</p>
+            <div class="command-box"><code id="dryRunCommand"></code><button class="copy-btn" onclick="copyCommand('dryRunCommand')">Copiar</button></div>
+            <h3>📊 Calcular Tamaño en la Nube</h3>
+             <div class="command-box"><code id="sizeCommand"></code><button class="copy-btn" onclick="copyCommand('sizeCommand')">Copiar</button></div>
+            
+            <hr style="margin-top: 30px; border-top: 1px solid #dee2e6;">
+            <h3 style="color: #c88f02; border-color: #c88f02;">➡️ Mover Carpetas (Cortar y Pegar)</h3>
+            <div class="warning">
+                <p><strong>Atención:</strong> Esta operación mueve los archivos del origen al destino y después los <strong>BORRA del origen</strong>. Úsalo para archivar o reorganizar.</p>
+            </div>
+
+            <label for="moveSourceTask">1. Origen (Carpeta que quieres "Cortar"):</label>
+            <select id="moveSourceTask" onchange="updateMoveCommand()"></select>
+            
+            <div class="move-direction">
+                <label><input type="radio" name="moveDirection" value="localToRemote" onchange="updateMoveCommand()" checked> Mover de PC ➡️ a Nube</label>
+                <label><input type="radio" name="moveDirection" value="remoteToLocal" onchange="updateMoveCommand()"> Mover de Nube ➡️ a PC</label>
+            </div>
+
+            <label for="moveDestinationPath">2. Destino (Ubicación donde quieres "Pegar"):</label>
+            <input type="text" id="moveDestinationPath" placeholder="Ej: B2:xtrategyq-datos/trading/archive/2025" oninput="updateMoveCommand()">
+            
+            <label>3. Comando a Ejecutar:</label>
+            <div class="command-box">
+                <code id="moveCommandPreview">Selecciona origen, destino y dirección para ver el comando.</code>
+                <button id="executeMoveBtn" class="copy-btn" style="background-color: #c88f02;" onclick="executeMove()">Copiar Movimiento</button>
+            </div>
+
+            <hr style="margin-top: 30px; border-top: 1px solid #dee2e6;">
+            <h3 style="color: #dc3545;">🚨 Mantenimiento Avanzado (¡Peligro!)</h3>
+            <h3>🗑️ Borrar un archivo o carpeta específica en la nube</h3>
+            <label for="deletePath">Ruta a borrar (relativa a la Ruta Remota de la tarea actual):</label>
+            <input type="text" id="deletePath" placeholder="Ej: subcarpeta_a_borrar/archivo.txt" oninput="updateCommands()">
+            <div class="command-box"><code id="deleteSpecificCommand"></code><button class="copy-btn" onclick="copyDangerousCommand('deleteSpecificCommand', '¿Estás seguro de que quieres borrar este elemento específico de la nube? Esta acción no se puede deshacer.')">Copiar</button></div>
+            <h3>💥 Purgar (borrar TODO) el contenido de la ruta remota</h3>
+            <p class="danger"><strong>¡ADVERTENCIA MÁXIMA!</strong> Este comando borrará <strong>TODO</strong> dentro de la Ruta Remota seleccionada actualmente.</p>
+            <div class="command-box"><code id="purgeCommand"></code><button class="copy-btn" onclick="copyDangerousCommand('purgeCommand', '¡ADVERTENCIA! Vas a borrar TODO el contenido de la carpeta seleccionada en la nube. ¿Estás absolutamente seguro?')">Copiar</button></div>
+        </details>
+    </div>
+    
+    <div class="setup-box" id="cacheFixSection" style="border: 2px solid #dc3545;">
+        <details>
+            <summary style="color: #dc3545;">PASO 5: Solución de Errores de Compilación en SQX</summary>
+            <div class="explanation">
+                <p><strong>Síntoma:</strong> Al iniciar StrategyQuant X, recibes errores como <code>Note - Compile all failed</code> o <code>cannot find symbol</code>.</p>
+                <p><strong>Causa:</strong> La caché de compilación local de SQX está corrupta.</p>
+            </div>
+            <h3>Pasos para la Solución</h3>
+            <ol>
+                <li><strong>CERRAR STRATEGYQUANT X POR COMPLETO.</strong></li>
+                <li><strong>ELIMINAR CARPETAS DE CACHÉ LOCALES:</strong> Ejecuta los comandos correspondientes.</li>
+            </ol>
+            <div id="cacheCommandsWindows" style="display:none;"><p>Comandos para <strong>Windows</strong> (<code>cmd</code> como Administrador):</p>
+                <div class="command-box"><code id="deleteCacheCmdWin1"></code><button class="copy-btn" onclick="copyCommand('deleteCacheCmdWin1')">Copiar</button></div>
+                <div class="command-box"><code id="deleteCacheCmdWin2"></code><button class="copy-btn" onclick="copyCommand('deleteCacheCmdWin2')">Copiar</button></div>
+                <div class="command-box"><code id="deleteCacheCmdWin3"></code><button class="copy-btn" onclick="copyCommand('deleteCacheCmdWin3')">Copiar</button></div>
+                <div class="command-box"><code id="deleteCacheCmdWin4"></code><button class="copy-btn" onclick="copyCommand('deleteCacheCmdWin4')">Copiar</button></div>
+            </div>
+            <div id="cacheCommandsKubuntu"><p class="danger"><strong>¡Atención!</strong> <code>rm -rf</code> borra de forma permanente.</p><p>Comandos para <strong>Kubuntu</strong>:</p>
+                <div class="command-box"><code id="deleteCacheCmdKubuntu1"></code><button class="copy-btn" onclick="copyCommand('deleteCacheCmdKubuntu1')">Copiar</button></div>
+                <div class="command-box"><code id="deleteCacheCmdKubuntu2"></code><button class="copy-btn" onclick="copyCommand('deleteCacheCmdKubuntu2')">Copiar</button></div>
+                <div class="command-box"><code id="deleteCacheCmdKubuntu3"></code><button class="copy-btn" onclick="copyCommand('deleteCacheCmdKubuntu3')">Copiar</button></div>
+                <div class="command-box"><code id="deleteCacheCmdKubuntu4"></code><button class="copy-btn" onclick="copyCommand('deleteCacheCmdKubuntu4')">Copiar</button></div>
+            </div>
+            <ol start="3">
+                <li><strong>RESINCRONIZAR DESDE LA NUBE:</strong> Vuelve al PASO 1 y ejecuta <strong>BAJAR</strong>.</li>
+                <li><strong>REINICIAR STRATEGYQUANT X.</strong></li>
+            </ol>
+        </details>
+    </div>
+
+    <div class="setup-box" style="border: 2px solid #20c997;">
+        <details>
+            <summary style="color: #20c997;">PASO 6: Creación del Backup Fiable (Fase 1)</summary>
+            <div class="explanation" style="border-left-color: #20c997;">
+                <p>Esta fase se ejecuta en tu <strong>servidor de producción</strong> para crear un backup actualizado y portable. Este backup contiene tus datos, configuraciones y la lista de software, permitiendo una restauración fiable en cualquier hardware.</p>
+            </div>
+
+            <h4>1.1. Definir la Fecha del Backup</h4>
+            <p>Para asegurar que todos los archivos tengan la misma versión, primero definimos una variable con la fecha actual.</p>
+            <div class="command-box"><code id="f1_fecha">FECHA=$(date +%Y-%m-%d)
+echo "La fecha para los archivos de hoy es: $FECHA"</code><button class="copy-btn" onclick="copyCommand('f1_fecha')">Copiar</button></div>
+            
+            <h4>1.2. Crear el Backup Esencial (.tar.gz)</h4>
+            <p>Este comando usa la variable <code>$FECHA</code> para empaquetar tus datos (<code>/home</code>) y configuraciones (<code>/etc</code>).</p>
+            <div class="command-box"><code id="f1_tar">sudo tar -cvpzf /root/mi_backup_esencial-$FECHA.tar.gz /home/ /etc/</code><button class="copy-btn" onclick="copyCommand('f1_tar')">Copiar</button></div>
+
+            <h4>1.3. Crear la Lista de Software</h4>
+            <p>Guarda una lista de todos los programas instalados para una reinstalación automática.</p>
+            <div class="command-box"><code id="f1_dpkg">sudo bash -c "dpkg --get-selections > /root/lista_software-$FECHA.txt"</code><button class="copy-btn" onclick="copyCommand('f1_dpkg')">Copiar</button></div>
+
+            <h4>1.4. Subir los Archivos a la Nube (B2)</h4>
+            <p>Sube los dos archivos versionados a tu bucket de Backblaze.</p>
+            <div class="command-box"><code id="f1_rclone">sudo rclone copy /root/mi_backup_esencial-$FECHA.tar.gz B2:xtrategyq-datos/backup_fiable/ --progress
+sudo rclone copy /root/lista_software-$FECHA.txt B2:xtrategyq-datos/backup_fiable/ --progress</code><button class="copy-btn" onclick="copyCommand('f1_rclone')">Copiar</button></div>
+
+            <h4>1.5. Limpieza (Recomendado)</h4>
+            <p>Una vez los archivos estén a salvo en la nube, puedes borrarlos para liberar espacio.</p>
+            <div class="command-box"><code id="f1_clean">sudo rm /root/mi_backup_esencial-$FECHA.tar.gz
+sudo rm /root/lista_software-$FECHA.txt</code><button class="copy-btn" onclick="copyCommand('f1_clean')">Copiar</button></div>
+        </details>
+    </div>
+
+    <div class="setup-box" style="border: 2px solid #fd7e14;">
+        <details>
+            <summary style="color: #fd7e14;">PASO 7: Restauración del Servidor (Fase 2)</summary>
+            <div class="explanation" style="border-left-color: #fd7e14;">
+                <p>Estos son los pasos para reconstruir tu entorno por completo en un <strong>servidor nuevo y vacío</strong>. Sigue esta guía paso a paso para garantizar el éxito.</p>
+            </div>
+            
+            <h4>2.0. Parámetros de Restauración</h4>
+            <p>Introduce los datos del nuevo servidor y del backup a restaurar. Se guardarán en la caché de tu navegador para rellenar los comandos automáticamente.</p>
+            <label for="restoreDate">Fecha del Backup a Restaurar (YYYY-MM-DD):</label>
+            <input type="text" id="restoreDate" placeholder="Ej: 2025-08-10" oninput="updateRestoreCommands()">
+
+            <label for="serverIp">IP del Nuevo Servidor:</label>
+            <input type="text" id="serverIp" placeholder="Ej: 192.168.1.100" oninput="updateRestoreCommands()">
+
+            <label for="publicKey">Tu Clave Pública SSH (de tu Mac/PC):</label>
+            <input type="text" id="publicKey" placeholder="Pega aquí el contenido de tu id_rsa.pub" oninput="updateRestoreCommands()">
+            <button class="action-btn save" onclick="savePreferences()">💾 Guardar Parámetros de Restauración</button>
+            <hr style="margin-top: 30px;">
+
+            <h4>2.1. Contratación y Acceso Inicial</h4>
+            <ol>
+                <li><strong>Contrata un Servidor Cloud:</strong> Recomendado: **240 GB de disco** (ej. CPX41) con **Ubuntu 22.04 LTS**.</li>
+                <li><strong>Conéctate como `root`</strong> usando la IP y contraseña del proveedor:
+                    <div class="command-box"><code id="f2_ssh_root"># (En tu Mac) Borra la clave antigua del host para esta IP, si existiera
+ssh-keygen -R <span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span>
+
+# Conecta al servidor
+ssh root@<span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span></code><button class="copy-btn" onclick="copyCommand('f2_ssh_root')">Copiar</button></div>
+                </li>
+            </ol>
+
+            <h4>2.2. Creación de tu Usuario</h4>
+            <div class="command-box"><code id="f2_create_user">adduser ivan
+usermod -aG sudo ivan</code><button class="copy-btn" onclick="copyCommand('f2_create_user')">Copiar</button></div>
+
+            <h4>2.3. Instalación de tu Clave SSH</h4>
+            <ol>
+                <li><strong>En tu Mac,</strong> obtén tu clave pública (`cat ~/.ssh/id_rsa.pub`), cópiala y pégala en el campo "Tu Clave Pública SSH" de arriba.</li>
+                <li><strong>En el servidor (como `root`),</strong> prepara el archivo, pega tu clave (que ya tienes lista para copiar del campo de arriba) y ajusta los permisos:
+                     <div class="command-box"><code id="f2_ssh_setup">mkdir -p /home/ivan/.ssh
+nano /home/ivan/.ssh/authorized_keys
+# (Dentro de nano, pega tu clave: <span class="placeholder-key">tu_clave_publica</span>)
+# (Guarda y cierra con Ctrl+X, Y, Enter)
+
+chown -R ivan:ivan /home/ivan/.ssh
+chmod 700 /home/ivan/.ssh
+chmod 600 /home/ivan/.ssh/authorized_keys</code><button class="copy-btn" onclick="copyCommand('f2_ssh_setup')">Copiar</button></div>
+                </li>
+                 <li><strong>Verificación:</strong> Cierra la sesión de `root` en el servidor (`exit`) y desde tu Mac, intenta entrar como `ivan` (`ssh ivan@<span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span>`). Deberías entrar sin contraseña.</li>
+            </ol>
+
+            <!-- ========= INICIO DE LA MEJORA ========= -->
+            <h4>2.3.1. Verificación de Acceso</h4>
+            <div class="explanation" style="border-left-color: #fd7e14;">
+                <p>Este es el paso más importante. Verifica que puedes entrar como <code>ivan</code> sin contraseña antes de continuar.</p>
+            </div>
+            <ol>
+                <li><strong>En el servidor,</strong> cierra la sesión de `root`:
+                    <div class="command-box"><code id="f2_exit_root">exit</code><button class="copy-btn" onclick="copyCommand('f2_exit_root')">Copiar</button></div>
+                </li>
+                <li><strong>En tu Mac,</strong> intenta entrar como `ivan`:
+                    <div class="command-box"><code id="f2_ssh_ivan">ssh ivan@<span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span></code><button class="copy-btn" onclick="copyCommand('f2_ssh_ivan')">Copiar</button></div>
+                </li>
+            </ol>
+            <div class="warning">
+                <p><strong>Si te pide contraseña:</strong> ¡Algo falló! Vuelve a conectarte como <code>root</code> y ejecuta de nuevo los comandos de la sección 2.3 para asegurar que los permisos (<code>chown</code>, <code>chmod</code>) son correctos.</p>
+            </div>
+            <!-- ========= FIN DE LA MEJORA ========= -->
+
+            <h4>2.4. Descarga del Backup Específico</h4>
+            <p>Ahora, ya conectado como `ivan`, empieza la restauración.</p>
+            <p><strong>Comando de configuración de rclone:</strong></p>
+            <div class="command-box"><code id="f2_rclone_config"># Instala y configura rclone
+sudo apt-get update && sudo apt-get install -y rclone
+rclone config</code><button class="copy-btn" onclick="copyCommand('f2_rclone_config')">Copiar</button></div>
+            
+            <div class="explanation">
+                <p><strong>Asistente de Credenciales:</strong> Durante <code>rclone config</code>, te pedirá <code>account</code> (keyID) y <code>key</code> (applicationKey). Usa tus credenciales del PASO 3:</p>
+                <ul>
+                    <li><b>account (keyID):</b> <code id="b2_keyid_helper"></code></li>
+                    <li><b>key (applicationKey):</b> <code id="b2_appkey_helper"></code></li>
+                </ul>
+                <button class="action-btn clone" style="padding: 5px 10px; font-size: 0.9em;" onclick="copyB2CredsForWizard()">Copiar Credenciales para Asistente</button>
+            </div>
+
+            <p><strong>Comandos de descarga (usa la fecha que definiste arriba). Dura unos 4 minutos:</strong></p>
+            <div class="command-box"><code id="f2_download"># Descarga los archivos de la fecha que definiste
+FECHA_A_RESTAURAR="<span class="placeholder-date">YYYY-MM-DD</span>"
+mkdir ~/backups
+rclone copy B2:xtrategyq-datos/backup_fiable/mi_backup_esencial-${FECHA_A_RESTAURAR}.tar.gz ~/backups/ --progress
+rclone copy B2:xtrategyq-datos/backup_fiable/lista_software-${FECHA_A_RESTAURAR}.txt ~/backups/ --progress</code><button class="copy-btn" onclick="copyCommand('f2_download')">Copiar</button></div>
+
+            <h4>2.5. Restauración del Software</h4>
+            <div class="command-box"><code id="f2_restore_sw">FECHA_A_RESTAURAR="<span class="placeholder-date">YYYY-MM-DD</span>"
+sudo dpkg --set-selections < ~/backups/lista_software-${FECHA_A_RESTAURAR}.txt
+sudo apt-get dselect-upgrade -y</code><button class="copy-btn" onclick="copyCommand('f2_restore_sw')">Copiar</button></div>
+            
+            <h4>2.6. Restauración de Datos</h4>
+            <p class="warning"><strong>Aviso de Demora (6-10 minutos):</strong> Este paso de descompresión (usando `tar`) puede tardar bastante dependiendo del tamaño del backup.</p>
+             <div class="command-box"><code id="f2_restore_data">FECHA_A_RESTAURAR="<span class="placeholder-date">YYYY-MM-DD</span>"
+mkdir ~/backups/restauracion
+sudo tar -xvpzf ~/backups/mi_backup_esencial-${FECHA_A_RESTAURAR}.tar.gz -C ~/backups/restauracion/
+sudo cp -a ~/backups/restauracion/home/ivan/. /home/ivan/
+sudo chown -R ivan:ivan /home/ivan</code><button class="copy-btn" onclick="copyCommand('f2_restore_data')">Copiar</button></div>
+
+            <h4>2.7. Restauración de Servicios Críticos (Firewall y SQX)</h4>
+             <div class="command-box"><code id="f2_restore_services"># Firewall
+sudo cp -a ~/backups/restauracion/etc/ufw/. /etc/ufw/
+sudo chown -R root:root /etc/ufw
+
+# Servicios de SQX
+sudo cp ~/backups/restauracion/etc/systemd/system/sqx-*.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable sqx-network-setup.service
+sudo systemctl enable sqx-port-proxy.service</code><button class="copy-btn" onclick="copyCommand('f2_restore_services')">Copiar</button></div>
+
+            <h4>2.8. Configuración del Escritorio Remoto y Activación del Firewall</h4>
+             <p class="warning"><strong>Posible Interacción:</strong> Durante la instalación de <code>kubuntu-desktop</code>, si aparecen pantallas (al minuto) de configuración (de color morado o azul), usa la tecla <strong><code>Tab</code></strong> para moverte entre las opciones y <strong><code>Enter</code></strong> para confirmar. La duración total es de unos 4 minutos y hay que estar ATENTO porque hay que aceptar al final con un Y+enter.</p>
+             <div class="command-box"><code id="f2_xrdp"># Instala los paquetes
+sudo apt-get install kubuntu-desktop -y
+sudo apt-get install xrdp -y
+
+# Configura la sesión
+echo "startplasma-x11" > ~/.xsession
+
+# Abre los puertos y activa el firewall
+sudo ufw allow ssh          # Permite acceso por terminal
+sudo ufw allow 3389/tcp     # Permite acceso por Escritorio Remoto
+sudo ufw enable             # Activa el firewall con todas tus reglas
+
+# Reinicia el servicio de escritorio
+sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand('f2_xrdp')">Copiar</button></div>
+
+            <h4>2.9. Reinicio Final y Verificación</h4>
+            <div class="command-box"><code id="f2_reboot">sudo reboot</code><button class="copy-btn" onclick="copyCommand('f2_reboot')">Copiar</button></div>
+            <p>Después del reinicio, verifica el acceso por SSH (`ssh ivan@<span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span>`) y Escritorio Remoto. El sistema debería ser un clon funcional y seguro de tu servidor de producción.</p>
+
+        </details>
+    </div>
+    <div class="setup-box" id="symlinkSection" style="border: 2px dashed #0dcaf0;">
+        <details>
+            <summary style="color: #0dcaf0;">PASO 8 (Opcional): Recrear Accesos Directos</summary>
+            <div class="explanation" style="border-left-color: #0dcaf0;">
+                <p><strong>Cuándo usar esto:</strong> Después de haber usado el comando <strong>BAJAR</strong> (del PASO 1) para restaurar tu carpeta <code>automatizacion_escritorio</code> en una máquina nueva.</p>
+                <p>Estos comandos crearán "accesos directos" en tu escritorio principal que apuntan a los lanzadores reales dentro de la carpeta.</p>
+            </div>
+            
+            <h4>Comandos para Kubuntu/Linux</h4>
+            <label>Acceso directo para "Crear Proyecto":</label>
+            <div class="command-box">
+                <code id="createSymlinkCmd1"></code>
+                <button class="copy-btn" onclick="copyCommand('createSymlinkCmd1')">Copiar</button>
+            </div>
+            
+            <label>Acceso directo para "Gestionar Proyectos":</label>
+            <div class="command-box">
+                <code id="createSymlinkCmd2"></code>
+                <button class="copy-btn" onclick="copyCommand('createSymlinkCmd2')">Copiar</button>
+            </div>
+        </details>
+    </div>
+
+</div>
+
+<script>
+    let syncTasks = {};
+    const baseRemotePath = "B2:xtrategyq-datos/trading";
+    const sqxInternalCachePath = "SQX_Hibrido_141_lib142/internal/electron/resources/userData/SQUANT";
+
+    const defaultTasks = {
+        "sqx_data_config": { name: "Configuración SQX", group: "📊 TRADING DATA", remote: `${baseRemotePath}/data`, local_windows: "%USERPROFILE%\\Desktop\\TradingData\\SQX_Config", local_kubuntu: "$HOME/Desktop/TradingData/SQX_Config" },
+        "sqx_app_win": { name: "App - StrategyQuant X (Windows)", group: "⚙️ APLICACIONES", remote: `${baseRemotePath}/apps/sqx/windows`, local_windows: "%USERPROFILE%\\Desktop\\TradingApps\\SQX_Windows", local_kubuntu: "$HOME/Desktop/TradingApps/SQX_Windows" },
+        "sqx_app_linux": { name: "App - StrategyQuant X (Linux)", group: "⚙️ APLICACIONES", remote: `${baseRemotePath}/apps/sqx/linux`, local_windows: "%USERPROFILE%\\Desktop\\TradingApps\\SQX_Linux", local_kubuntu: "$HOME/Desktop/TradingApps/SQX_Linux" },
+        "mt5_app_win": { name: "App - MetaTrader 5 (Windows)", group: "⚙️ APLICACIONES", remote: `${baseRemotePath}/apps/mt5/windows`, local_windows: "%USERPROFILE%\\Desktop\\TradingApps\\MT5_Windows", local_kubuntu: "$HOME/Desktop/TradingApps\\MT5_Windows" },
+        "mt5_app_linux": { name: "App - MetaTrader 5 (Linux)", group: "⚙️ APLICACIONES", remote: `${baseRemotePath}/apps/mt5/linux`, local_windows: "%USERPROFILE%\\Desktop\\TradingApps\\MT5_Linux", local_kubuntu: "$HOME/Desktop/TradingApps/MT5_Linux"}
+    };
+
+    function getTasks() {
+        const storedTasks = localStorage.getItem('rclone_tasks');
+        if (storedTasks && Object.keys(JSON.parse(storedTasks)).length > 0) {
+            syncTasks = JSON.parse(storedTasks);
+        } else {
+            syncTasks = defaultTasks;
+            saveTasks();
+        }
+    }
+
+    function saveTasks() {
+        localStorage.setItem('rclone_tasks', JSON.stringify(syncTasks));
+    }
+
+    function populateSyncSelector() {
+        const mainSelector = document.getElementById('syncSelector');
+        const moveSelector = document.getElementById('moveSourceTask');
+        const previouslySelectedTask = mainSelector.value;
+        mainSelector.innerHTML = '';
+        if (moveSelector) moveSelector.innerHTML = '';
+        const groups = {};
+        const moveGroups = {};
+        for (const key in syncTasks) {
+            const task = syncTasks[key];
+            const groupName = task.group || 'Tareas Personalizadas';
+            if (!groups[groupName]) {
+                groups[groupName] = document.createElement('optgroup');
+                groups[groupName].label = groupName;
+                mainSelector.appendChild(groups[groupName]);
+                if (moveSelector) {
+                    moveGroups[groupName] = document.createElement('optgroup');
+                    moveGroups[groupName].label = groupName;
+                    moveSelector.appendChild(moveGroups[groupName]);
+                }
+            }
+            const option = document.createElement('option');
+            option.value = key;
+            option.innerText = task.name;
+            groups[groupName].appendChild(option);
+            if (moveSelector) {
+                const moveOption = option.cloneNode(true);
+                moveGroups[groupName].appendChild(moveOption);
+            }
+        }
+        if (previouslySelectedTask && syncTasks[previouslySelectedTask]) {
+            mainSelector.value = previouslySelectedTask;
+        } else {
+            const firstTaskKey = Object.keys(syncTasks)[0];
+            mainSelector.value = firstTaskKey || '';
+        }
+        if (moveSelector) {
+            moveSelector.value = mainSelector.value;
+        }
+    }
+    
+    function getOSConfig() {
+        const os = document.getElementById('osSelector').value;
+        return { name: os, executable: os === 'windows' ? "C:\\rclone\\rclone.exe" : "rclone", pathSeparator: os === 'windows' ? "\\" : "/" };
+    }
+
+    function updateAll() {
+        const osConfig = getOSConfig();
+        const selectedTaskKey = document.getElementById('syncSelector').value;
+        const isWindows = osConfig.name === 'windows';
+        const newColor = isWindows ? 'var(--theme-color-windows)' : 'var(--theme-color-kubuntu)';
+        document.documentElement.style.setProperty('--current-theme-color', newColor);
+        document.getElementById('main-title').innerText = isWindows ? '🚀 Panel (Windows)' : '🚀 Panel (Linux)';
+        document.getElementById('installWindows').style.display = isWindows ? 'block' : 'none';
+        document.getElementById('installKubuntu').style.display = isWindows ? 'none' : 'block';
+        document.getElementById('cacheCommandsWindows').style.display = isWindows ? 'block' : 'none';
+        document.getElementById('cacheCommandsKubuntu').style.display = isWindows ? 'none' : 'block';
+        
+        const symlinkSection = document.getElementById('symlinkSection');
+        if (symlinkSection) {
+            symlinkSection.style.display = isWindows ? 'none' : 'block';
+        }
+
+        if (!selectedTaskKey || !syncTasks[selectedTaskKey]) {
+            document.getElementById('localPath').value = 'No hay tarea seleccionada.';
+            document.getElementById('remotePath').value = 'No hay tarea seleccionada.';
+        } else {
+            const taskDetails = syncTasks[selectedTaskKey];
+            const localPathKey = `local_${osConfig.name}`;
+            document.getElementById('localPath').value = taskDetails[localPathKey];
+            document.getElementById('remotePath').value = taskDetails.remote;
+        }
+        updateCommands();
+        if (document.getElementById('moveSourceTask')) {
+            updateMoveCommand();
+        }
+        updateRestoreCommands();
+    }
+
+    function updateCommands() {
+        const osConfig = getOSConfig();
+        const rcloneExecutable = osConfig.executable;
+        const localPath = document.getElementById('localPath').value;
+        const remotePath = document.getElementById('remotePath').value;
+        const deletePath = document.getElementById('deletePath').value;
+        document.getElementById('syncUpCommand').innerText = `${rcloneExecutable} sync "${localPath}" "${remotePath}" --progress`;
+        document.getElementById('syncDownCommand').innerText = `${rcloneExecutable} sync "${remotePath}" "${localPath}" --progress`;
+        document.getElementById('configCommand').innerText = `${rcloneExecutable} config`;
+        document.getElementById('keyIdDisplay').innerText = document.getElementById('keyID').value || 'tu_keyID';
+        document.getElementById('appKeyDisplay').innerText = document.getElementById('applicationKey').value || 'tu_applicationKey';
+        document.getElementById('listRemotesCommand').innerText = `${rcloneExecutable} listremotes`;
+        document.getElementById('checkCommand').innerText = `${rcloneExecutable} check "${localPath}" "${remotePath}" --progress`;
+        document.getElementById('dryRunCommand').innerText = `${rcloneExecutable} sync "${localPath}" "${remotePath}" --progress --dry-run`;
+        document.getElementById('sizeCommand').innerText = `${rcloneExecutable} size "${remotePath}"`;
+        const fullDeletePath = deletePath ? `${remotePath}/${deletePath}` : null;
+        document.getElementById('deleteSpecificCommand').innerText = fullDeletePath ? `${rcloneExecutable} delete "${fullDeletePath}" --progress` : 'Introduce una ruta relativa a borrar arriba.';
+        document.getElementById('purgeCommand').innerText = `${rcloneExecutable} purge "${remotePath}" --progress`;
+        const sqxDataPath = syncTasks['sqx_data_config'] ? syncTasks['sqx_data_config'][`local_${osConfig.name}`] : '';
+        if (sqxDataPath) {
+            const cacheBasePath = `${sqxDataPath}${osConfig.pathSeparator}${sqxInternalCachePath.replace(/\//g, osConfig.pathSeparator)}`;
+            if (osConfig.name === 'windows') {
+                document.getElementById('deleteCacheCmdWin1').innerText = `rmdir /s /q "${cacheBasePath}\\Cache"`;
+                document.getElementById('deleteCacheCmdWin2').innerText = `rmdir /s /q "${cacheBasePath}\\DawnCache"`;
+                document.getElementById('deleteCacheCmdWin3').innerText = `rmdir /s /q "${cacheBasePath}\\GPUCache"`;
+                document.getElementById('deleteCacheCmdWin4').innerText = `rmdir /s /q "${cacheBasePath}\\Code Cache"`;
+            } else {
+                document.getElementById('deleteCacheCmdKubuntu1').innerText = `rm -rf "${cacheBasePath}/Cache"`;
+                document.getElementById('deleteCacheCmdKubuntu2').innerText = `rm -rf "${cacheBasePath}/DawnCache"`;
+                document.getElementById('deleteCacheCmdKubuntu3').innerText = `rm -rf "${cacheBasePath}/GPUCache"`;
+                document.getElementById('deleteCacheCmdKubuntu4').innerText = `rm -rf "${cacheBasePath}/Code Cache"`;
+            }
+        }
+
+        const createSymlinkCmd1 = document.getElementById('createSymlinkCmd1');
+        if (createSymlinkCmd1) {
+            const desktopAutomationPath = "$HOME/Desktop/automatizacion_escritorio";
+            createSymlinkCmd1.innerText = `ln -s "${desktopAutomationPath}/'Crear Proyecto.desktop'" "$HOME/Desktop/'Crear Proyecto.desktop'"`;
+            document.getElementById('createSymlinkCmd2').innerText = `ln -s "${desktopAutomationPath}/'Gestionar Proyectos.desktop'" "$HOME/Desktop/'Gestionar Proyectos.desktop'"`;
+        }
+    }
+
+    function updateRestoreCommands() {
+        const restoreDate = document.getElementById('restoreDate').value || 'YYYY-MM-DD';
+        const serverIp = document.getElementById('serverIp').value || 'IP_DEL_NUEVO_SERVIDOR';
+        const publicKey = document.getElementById('publicKey').value || 'tu_clave_publica';
+
+        document.querySelectorAll('.placeholder-date').forEach(el => el.innerText = restoreDate);
+        document.querySelectorAll('.placeholder-ip').forEach(el => el.innerText = serverIp);
+        document.querySelectorAll('.placeholder-key').forEach(el => el.innerText = publicKey);
+
+        // Update B2 Helper
+        const keyID = document.getElementById('keyID').value || 'tu_keyID (del PASO 3)';
+        const appKey = document.getElementById('applicationKey').value || 'tu_applicationKey (del PASO 3)';
+        document.getElementById('b2_keyid_helper').innerText = keyID;
+        document.getElementById('b2_appkey_helper').innerText = appKey;
+    }
+    
+    function updateMoveCommand() {
+        const osConfig = getOSConfig();
+        const rcloneExecutable = osConfig.executable;
+        const sourceKey = document.getElementById('moveSourceTask').value;
+        const destinationPath = document.getElementById('moveDestinationPath').value.trim();
+        const direction = document.querySelector('input[name="moveDirection"]:checked').value;
+        const commandPreview = document.getElementById('moveCommandPreview');
+        if (!sourceKey || !destinationPath || !syncTasks[sourceKey]) {
+            commandPreview.innerText = "Selecciona origen, destino y dirección para ver el comando.";
+            return;
+        }
+        const sourceTask = syncTasks[sourceKey];
+        let sourcePath, finalDestinationPath;
+        if (direction === 'localToRemote') {
+            sourcePath = sourceTask[`local_${osConfig.name}`];
+            finalDestinationPath = destinationPath;
+        } else {
+            sourcePath = sourceTask.remote;
+            finalDestinationPath = destinationPath;
+        }
+        commandPreview.innerText = `${rcloneExecutable} move "${sourcePath}" "${finalDestinationPath}" --progress`;
+    }
+
+    function executeMove() {
+        const commandText = document.getElementById('moveCommandPreview').innerText;
+        if (commandText.startsWith('Selecciona')) {
+            alert('Por favor, configura la operación de movimiento completamente antes de copiar el comando.');
+            return;
+        }
+        const confirmation = confirm("¡ACCIÓN DESTRUCTIVA! (CORTAR Y PEGAR)\n\nVas a ejecutar un comando 'move'. Esta acción BORRA permanentemente los archivos de la carpeta de ORIGEN después de copiarlos al destino.\n\n¿Estás absolutamente seguro de que quieres continuar?");
+        if (confirmation) {
+            navigator.clipboard.writeText(commandText).then(() => alert('¡Comando de movimiento copiado!\nPégalo en tu terminal para ejecutarlo.'), () => alert('Error al copiar el comando.'));
+        } else {
+            alert('Operación cancelada.');
+        }
+    }
+
+    function savePreferences() {
+        // Main preferences
+        localStorage.setItem('rclone_keyID', document.getElementById('keyID').value);
+        localStorage.setItem('rclone_appKey', document.getElementById('applicationKey').value);
+        localStorage.setItem('rclone_selectedOS', document.getElementById('osSelector').value);
+        localStorage.setItem('rclone_selectedTask', document.getElementById('syncSelector').value);
+        // Restore preferences
+        localStorage.setItem('rclone_restoreDate', document.getElementById('restoreDate').value);
+        localStorage.setItem('rclone_serverIp', document.getElementById('serverIp').value);
+        localStorage.setItem('rclone_publicKey', document.getElementById('publicKey').value);
+        alert('¡Preferencias y Parámetros de Restauración guardados!');
+    }
+
+    function loadSettings() {
+        getTasks();
+        populateSyncSelector();
+        // Main settings
+        document.getElementById('keyID').value = localStorage.getItem('rclone_keyID') || '';
+        document.getElementById('applicationKey').value = localStorage.getItem('rclone_appKey') || '';
+        document.getElementById('osSelector').value = localStorage.getItem('rclone_selectedOS') || 'kubuntu';
+        const savedTask = localStorage.getItem('rclone_selectedTask');
+        if (savedTask && syncTasks[savedTask]) {
+             document.getElementById('syncSelector').value = savedTask;
+        }
+        // Restore settings
+        document.getElementById('restoreDate').value = localStorage.getItem('rclone_restoreDate') || '';
+        document.getElementById('serverIp').value = localStorage.getItem('rclone_serverIp') || '';
+        document.getElementById('publicKey').value = localStorage.getItem('rclone_publicKey') || '';
+
+        updateAll();
+    }
+    
+    function copyCommand(elementId) {
+        const textToCopy = document.getElementById(elementId).innerText;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            alert('¡Comando copiado!');
+        }, () => {
+            alert('Error al copiar el comando.');
+        });
+    }
+
+    function copyB2CredsForWizard() {
+        const keyID = document.getElementById('b2_keyid_helper').innerText;
+        const appKey = document.getElementById('b2_appkey_helper').innerText;
+        const textToCopy = `Para 'account', usa: ${keyID}\nPara 'key', usa: ${appKey}`;
+         navigator.clipboard.writeText(textToCopy).then(() => {
+            alert('Credenciales de B2 copiadas.\nPégalas en la terminal cuando rclone te las pida.');
+        }, () => {
+            alert('Error al copiar las credenciales.');
+        });
+    }
+
+    function copyDangerousCommand(elementId, confirmationMessage) {
+        let commandText = document.getElementById(elementId).innerText;
+        if (commandText.startsWith('Introduce una ruta')) {
+            alert('Error: No has especificado una ruta.');
+            return;
+        }
+        if (confirm(confirmationMessage)) {
+            copyCommand(elementId);
+        } else {
+            alert('Operación cancelada.');
+        }
+    }
+    
+    const taskForm = document.getElementById('taskForm');
+    const formTitle = document.getElementById('formTitle');
+    const taskKeyInput = document.getElementById('taskKey');
+    const saveTaskBtn = document.getElementById('saveTaskBtn');
+
+    function prepareFormForCreate() {
+        formTitle.innerText = '➕ Definir Nueva Tarea';
+        saveTaskBtn.innerText = '💾 Guardar Tarea';
+        taskKeyInput.readOnly = false;
+        taskForm.reset();
+        taskForm.style.display = 'block';
+        taskKeyInput.focus();
+    }
+
+    function prepareFormForEdit() {
+        const selectedKey = document.getElementById('syncSelector').value;
+        if (!selectedKey) { alert("No hay ninguna tarea seleccionada para editar."); return; }
+        const task = syncTasks[selectedKey];
+        formTitle.innerText = `✏️ Editando Tarea: ${task.name}`;
+        saveTaskBtn.innerText = '💾 Actualizar Tarea';
+        document.getElementById('taskName').value = task.name;
+        taskKeyInput.value = selectedKey;
+        taskKeyInput.readOnly = true;
+        document.getElementById('taskGroup').value = task.group || '';
+        document.getElementById('taskRemote').value = task.remote;
+        document.getElementById('taskLocalWin').value = task.local_windows;
+        document.getElementById('taskLocalKubuntu').value = task.local_kubuntu;
+        taskForm.style.display = 'block';
+    }
+
+    function prepareFormForClone() {
+        const selectedKey = document.getElementById('syncSelector').value;
+        if (!selectedKey) {
+            alert("Primero selecciona una tarea de la lista para usarla como base.");
+            return;
+        }
+        const task = syncTasks[selectedKey];
+
+        formTitle.innerText = `➕ Clonar Tarea (Basada en "${task.name}")`;
+        saveTaskBtn.innerText = '💾 Guardar Tarea Clonada';
+        
+        document.getElementById('taskName').value = task.name + " (Copia)";
+        document.getElementById('taskKey').value = ''; // ¡Importante! Limpiar el ID
+        taskKeyInput.readOnly = false; // ¡Importante! Hacer el ID editable
+
+        document.getElementById('taskGroup').value = task.group || '';
+        document.getElementById('taskRemote').value = task.remote;
+        document.getElementById('taskLocalWin').value = task.local_windows;
+        document.getElementById('taskLocalKubuntu').value = task.local_kubuntu;
+        
+        taskForm.style.display = 'block';
+        taskKeyInput.focus(); // Poner el foco en el campo del nuevo ID
+    }
+
+    document.getElementById('showNewTaskFormBtn').addEventListener('click', prepareFormForCreate);
+    document.getElementById('cloneTaskBtn').addEventListener('click', prepareFormForClone);
+    document.getElementById('editTaskBtn').addEventListener('click', prepareFormForEdit);
+    document.getElementById('cancelTaskBtn').addEventListener('click', () => { taskForm.style.display = 'none'; });
+    
+    saveTaskBtn.addEventListener('click', () => {
+        const isEditing = taskKeyInput.readOnly;
+        const key = taskKeyInput.value.trim().replace(/\s+/g, '_').toLowerCase();
+        const name = document.getElementById('taskName').value.trim();
+        const group = document.getElementById('taskGroup').value.trim().toUpperCase();
+        const remote = document.getElementById('taskRemote').value.trim();
+        const local_windows = document.getElementById('taskLocalWin').value.trim();
+        const local_kubuntu = document.getElementById('taskLocalKubuntu').value.trim();
+
+        if (!key || !name || !remote || !local_windows || !local_kubuntu) {
+            alert("Error: Todos los campos (excepto Grupo) son obligatorios."); return;
+        }
+        if (!isEditing && syncTasks[key]) {
+            alert("Error: El ID único ya existe. Por favor, elige otro."); return;
+        }
+
+        syncTasks[key] = { name, group, remote, local_windows, local_kubuntu };
+        saveTasks();
+        populateSyncSelector();
+        document.getElementById('syncSelector').value = key;
+        updateAll();
+        taskForm.style.display = 'none';
+        alert(isEditing ? "¡Tarea actualizada con éxito!" : "¡Tarea guardada con éxito!");
+    });
+
+    document.getElementById('deleteTaskBtn').addEventListener('click', () => {
+        const selector = document.getElementById('syncSelector');
+        if (!selector.value) { alert("No hay tareas para borrar."); return; }
+        if (Object.keys(syncTasks).length <= 1) {
+            alert("No puedes borrar la última tarea. Edítala o añade una nueva primero."); return;
+        }
+        const selectedKey = selector.value;
+        const taskName = syncTasks[selectedKey].name;
+
+        if (confirm(`¿Estás seguro de que quieres borrar la tarea "${taskName}"?`)) {
+            delete syncTasks[selectedKey];
+            saveTasks();
+            populateSyncSelector();
+            updateAll();
+            alert(`Tarea "${taskName}" borrada.`);
+        }
+    });
+
+    window.onload = loadSettings;
+</script>
+
+</body>
+</html>
