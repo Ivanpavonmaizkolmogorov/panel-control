@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel de Control v17.1 (con Manual de Recuperación Mejorado)</title>
+    <title>Panel de Control v18.0 (Firebase Edition)</title>
     <style>
         :root {
             --theme-color-windows: #0d6efd;
@@ -123,10 +123,10 @@
             <summary>PASO 3: Guía de Instalación y Credenciales</summary>
             <h3>Credenciales de Backblaze B2</h3>
             <label for="keyID">keyID:</label>
-            <input type="text" id="keyID" placeholder="Pega aquí tu keyID" oninput="updateAll()">
+            <input type="text" id="keyID" oninput="updateAll()">
             <label for="applicationKey">applicationKey:</label>
-            <input type="text" id="applicationKey" placeholder="Pega aquí tu applicationKey" oninput="updateAll()">
-            <button class="action-btn save" onclick="savePreferences()">💾 Guardar Preferencias</button>
+            <input type="text" id="applicationKey" oninput="updateAll()">
+            <button class="action-btn save" id="savePrefsBtn">💾 Guardar Preferencias</button>
             <hr style="margin-top: 30px;">
             
             <h3>Guía de Instalación de Rclone</h3>
@@ -270,14 +270,14 @@ sudo rm /root/lista_software-$FECHA.txt</code><button class="copy-btn" onclick="
             <h4>2.0. Parámetros de Restauración</h4>
             <p>Introduce los datos del nuevo servidor y del backup a restaurar. Se guardarán en la caché de tu navegador para rellenar los comandos automáticamente.</p>
             <label for="restoreDate">Fecha del Backup a Restaurar (YYYY-MM-DD):</label>
-            <input type="text" id="restoreDate" placeholder="Ej: 2025-08-10" oninput="updateRestoreCommands()">
+            <input type="text" id="restoreDate" oninput="updateRestoreCommands()">
 
             <label for="serverIp">IP del Nuevo Servidor:</label>
             <input type="text" id="serverIp" placeholder="Ej: 192.168.1.100" oninput="updateRestoreCommands()">
 
             <label for="publicKey">Tu Clave Pública SSH (de tu Mac/PC):</label>
             <input type="text" id="publicKey" placeholder="Pega aquí el contenido de tu id_rsa.pub" oninput="updateRestoreCommands()">
-            <button class="action-btn save" onclick="savePreferences()">💾 Guardar Parámetros de Restauración</button>
+            <button class="action-btn save" id="saveRestoreBtn">💾 Guardar Parámetros de Restauración</button>
             <hr style="margin-top: 30px;">
 
             <h4>2.1. Contratación y Acceso Inicial</h4>
@@ -312,7 +312,6 @@ chmod 600 /home/ivan/.ssh/authorized_keys</code><button class="copy-btn" onclick
                  <li><strong>Verificación:</strong> Cierra la sesión de `root` en el servidor (`exit`) y desde tu Mac, intenta entrar como `ivan` (`ssh ivan@<span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span>`). Deberías entrar sin contraseña.</li>
             </ol>
 
-            <!-- ========= INICIO DE LA MEJORA ========= -->
             <h4>2.3.1. Verificación de Acceso</h4>
             <div class="explanation" style="border-left-color: #fd7e14;">
                 <p>Este es el paso más importante. Verifica que puedes entrar como <code>ivan</code> sin contraseña antes de continuar.</p>
@@ -328,8 +327,6 @@ chmod 600 /home/ivan/.ssh/authorized_keys</code><button class="copy-btn" onclick
             <div class="warning">
                 <p><strong>Si te pide contraseña:</strong> ¡Algo falló! Vuelve a conectarte como <code>root</code> y ejecuta de nuevo los comandos de la sección 2.3 para asegurar que los permisos (<code>chown</code>, <code>chmod</code>) son correctos.</p>
             </div>
-            <!-- ========= FIN DE LA MEJORA ========= -->
-
             <h4>2.4. Descarga del Backup Específico</h4>
             <p>Ahora, ya conectado como `ivan`, empieza la restauración.</p>
             <p><strong>Comando de configuración de rclone:</strong></p>
@@ -425,7 +422,30 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
 
 </div>
 
-<script>
+<script type="module">
+    // 1. Integración de Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Sustituye esto con la configuración de tu proyecto de Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyDCf1YzXaCFEHy4KdY2H-FCk4gsWkEsAl4",
+        authDomain: "panel-de-control-web.firebaseapp.com",
+        projectId: "panel-de-control-web",
+        storageBucket: "panel-de-control-web.firebasestorage.app",
+        messagingSenderId: "1025789704224",
+        appId: "1:1025789704224:web:67316fe0e35ee3bb2fa445"
+      };
+    // Inicializa Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 2. Refactorización de la Lógica de Datos
+    // Única Fuente de Verdad en Firestore
+    const docRef = doc(db, "panelConfig", "main");
+
+    // Estado local de la aplicación
     let syncTasks = {};
     const baseRemotePath = "B2:xtrategyq-datos/trading";
     const sqxInternalCachePath = "SQX_Hibrido_141_lib142/internal/electron/resources/userData/SQUANT";
@@ -438,19 +458,87 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
         "mt5_app_linux": { name: "App - MetaTrader 5 (Linux)", group: "⚙️ APLICACIONES", remote: `${baseRemotePath}/apps/mt5/linux`, local_windows: "%USERPROFILE%\\Desktop\\TradingApps\\MT5_Linux", local_kubuntu: "$HOME/Desktop/TradingApps/MT5_Linux"}
     };
 
-    function getTasks() {
-        const storedTasks = localStorage.getItem('rclone_tasks');
-        if (storedTasks && Object.keys(JSON.parse(storedTasks)).length > 0) {
-            syncTasks = JSON.parse(storedTasks);
-        } else {
-            syncTasks = defaultTasks;
-            saveTasks();
+    // Nueva función para GUARDAR datos
+    async function saveDataToFirebase() {
+        const dataToSave = {
+            tasks: syncTasks,
+            keyID: document.getElementById('keyID').value,
+            applicationKey: document.getElementById('applicationKey').value,
+            selectedOS: document.getElementById('osSelector').value,
+            selectedTask: document.getElementById('syncSelector').value,
+            restoreDate: document.getElementById('restoreDate').value,
+            serverIp: document.getElementById('serverIp').value,
+            publicKey: document.getElementById('publicKey').value,
+        };
+        try {
+            await setDoc(docRef, dataToSave);
+            console.log("Datos guardados en Firestore.");
+        } catch (error) {
+            console.error("Error al guardar en Firestore: ", error);
+            alert("Error: No se pudieron guardar los datos. Revisa la consola para más detalles.");
         }
     }
 
-    function saveTasks() {
-        localStorage.setItem('rclone_tasks', JSON.stringify(syncTasks));
+    // Nueva función para CARGAR datos
+    async function loadDataFromFirebase() {
+        try {
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                console.log("Cargando datos desde Firestore...");
+                const data = docSnap.data();
+                
+                // Carga de tareas con fallback
+                syncTasks = (data.tasks && Object.keys(data.tasks).length > 0) ? data.tasks : defaultTasks;
+                
+                // Carga de preferencias y configuraciones
+                document.getElementById('keyID').value = data.keyID || '';
+                document.getElementById('applicationKey').value = data.applicationKey || '';
+                document.getElementById('osSelector').value = data.selectedOS || 'kubuntu';
+
+                
+                populateSyncSelector(); // Poblar antes de seleccionar
+                
+                const savedTask = data.selectedTask;
+                if (savedTask && syncTasks[savedTask]) {
+                     document.getElementById('syncSelector').value = savedTask;
+                }
+                
+                document.getElementById('restoreDate').value = data.restoreDate || '';
+                document.getElementById('serverIp').value = data.serverIp || '';
+                document.getElementById('publicKey').value = data.publicKey || '';
+
+            } else {
+                console.log("No existe el documento. Creando configuración inicial...");
+                // Primera ejecución: usar datos por defecto y guardarlos
+                syncTasks = defaultTasks;
+                populateSyncSelector();
+                await saveDataToFirebase();
+            }
+
+            updateAll(); // Actualizar la UI después de cargar/inicializar
+
+        } catch (error) {
+            console.error("Error al cargar desde Firestore: ", error);
+            alert("Error: No se pudieron cargar los datos. Usando configuración por defecto. Revisa la consola.");
+            // Fallback en caso de error de red o permisos
+            syncTasks = defaultTasks;
+            populateSyncSelector();
+            updateAll();
+        }
     }
+
+    // El resto del código de la UI permanece mayormente igual, pero ahora usa las funciones de Firebase.
+    // Todas las funciones globales se adjuntan al objeto window para ser accesibles desde el HTML (onclick).
+    window.updateAll = updateAll;
+    window.updateCommands = updateCommands;
+    window.updateMoveCommand = updateMoveCommand;
+    window.updateRestoreCommands = updateRestoreCommands;
+    window.copyCommand = copyCommand;
+    window.copyB2CredsForWizard = copyB2CredsForWizard;
+    window.copyDangerousCommand = copyDangerousCommand;
+    window.executeMove = executeMove;
+
 
     function populateSyncSelector() {
         const mainSelector = document.getElementById('syncSelector');
@@ -626,38 +714,6 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
         }
     }
 
-    function savePreferences() {
-        // Main preferences
-        localStorage.setItem('rclone_keyID', document.getElementById('keyID').value);
-        localStorage.setItem('rclone_appKey', document.getElementById('applicationKey').value);
-        localStorage.setItem('rclone_selectedOS', document.getElementById('osSelector').value);
-        localStorage.setItem('rclone_selectedTask', document.getElementById('syncSelector').value);
-        // Restore preferences
-        localStorage.setItem('rclone_restoreDate', document.getElementById('restoreDate').value);
-        localStorage.setItem('rclone_serverIp', document.getElementById('serverIp').value);
-        localStorage.setItem('rclone_publicKey', document.getElementById('publicKey').value);
-        alert('¡Preferencias y Parámetros de Restauración guardados!');
-    }
-
-    function loadSettings() {
-        getTasks();
-        populateSyncSelector();
-        // Main settings
-        document.getElementById('keyID').value = localStorage.getItem('rclone_keyID') || '';
-        document.getElementById('applicationKey').value = localStorage.getItem('rclone_appKey') || '';
-        document.getElementById('osSelector').value = localStorage.getItem('rclone_selectedOS') || 'kubuntu';
-        const savedTask = localStorage.getItem('rclone_selectedTask');
-        if (savedTask && syncTasks[savedTask]) {
-             document.getElementById('syncSelector').value = savedTask;
-        }
-        // Restore settings
-        document.getElementById('restoreDate').value = localStorage.getItem('rclone_restoreDate') || '';
-        document.getElementById('serverIp').value = localStorage.getItem('rclone_serverIp') || '';
-        document.getElementById('publicKey').value = localStorage.getItem('rclone_publicKey') || '';
-
-        updateAll();
-    }
-    
     function copyCommand(elementId) {
         const textToCopy = document.getElementById(elementId).innerText;
         navigator.clipboard.writeText(textToCopy).then(() => {
@@ -750,7 +806,18 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
     document.getElementById('editTaskBtn').addEventListener('click', prepareFormForEdit);
     document.getElementById('cancelTaskBtn').addEventListener('click', () => { taskForm.style.display = 'none'; });
     
-    saveTaskBtn.addEventListener('click', () => {
+    // 3. Actualización de Manejadores de Eventos
+    document.getElementById('savePrefsBtn').addEventListener('click', async () => {
+        await saveDataToFirebase();
+        alert('¡Preferencias guardadas en la nube!');
+    });
+
+    document.getElementById('saveRestoreBtn').addEventListener('click', async () => {
+        await saveDataToFirebase();
+        alert('¡Parámetros de restauración guardados en la nube!');
+    });
+
+    saveTaskBtn.addEventListener('click', async () => {
         const isEditing = taskKeyInput.readOnly;
         const key = taskKeyInput.value.trim().replace(/\s+/g, '_').toLowerCase();
         const name = document.getElementById('taskName').value.trim();
@@ -767,15 +834,17 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
         }
 
         syncTasks[key] = { name, group, remote, local_windows, local_kubuntu };
-        saveTasks();
         populateSyncSelector();
         document.getElementById('syncSelector').value = key;
         updateAll();
+        
+        await saveDataToFirebase();
+        
         taskForm.style.display = 'none';
         alert(isEditing ? "¡Tarea actualizada con éxito!" : "¡Tarea guardada con éxito!");
     });
 
-    document.getElementById('deleteTaskBtn').addEventListener('click', () => {
+    document.getElementById('deleteTaskBtn').addEventListener('click', async () => {
         const selector = document.getElementById('syncSelector');
         if (!selector.value) { alert("No hay tareas para borrar."); return; }
         if (Object.keys(syncTasks).length <= 1) {
@@ -786,34 +855,17 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
 
         if (confirm(`¿Estás seguro de que quieres borrar la tarea "${taskName}"?`)) {
             delete syncTasks[selectedKey];
-            saveTasks();
             populateSyncSelector();
             updateAll();
+            
+            await saveDataToFirebase();
+
             alert(`Tarea "${taskName}" borrada.`);
         }
     });
 
-    window.onload = loadSettings;
+    window.onload = loadDataFromFirebase;
 </script>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSy...",
-    authDomain: "tu-proyecto.firebaseapp.com",
-    projectId: "tu-proyecto",
-    storageBucket: "tu-proyecto.appspot.com",
-    messagingSenderId: "...",
-    appId: "..."
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-</script>
 </body>
 </html>
