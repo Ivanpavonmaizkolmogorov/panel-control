@@ -624,8 +624,8 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
         const localPath = document.getElementById('localPath').value;
         const remotePath = document.getElementById('remotePath').value;
         const deletePath = document.getElementById('deletePath').value;
-        document.getElementById('syncUpCommand').innerText = `${rcloneExecutable} sync "${localPath}" "${remotePath}" --progress`;
-        document.getElementById('syncDownCommand').innerText = `${rcloneExecutable} sync "${remotePath}" "${localPath}" --progress`;
+        document.getElementById('syncUpCommand').innerText = `${rcloneExecutable} sync "${localPath}" "${remotePath}" --progress --delete-empty-dirs`;
+        document.getElementById('syncDownCommand').innerText = `${rcloneExecutable} sync "${remotePath}" "${localPath}" --progress --delete-empty-dirs`;
         document.getElementById('configCommand').innerText = `${rcloneExecutable} config`;
         document.getElementById('keyIdDisplay').innerText = document.getElementById('keyID').value || 'tu_keyID';
         document.getElementById('appKeyDisplay').innerText = document.getElementById('applicationKey').value || 'tu_applicationKey';
