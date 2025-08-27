@@ -404,15 +404,11 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
             <ol>
                 <li><strong>Descargar la Aplicación Corrigiendo Enlaces Simbólicos:</strong><br>
                     La versión de Linux de SQX usa "enlaces simbólicos" (symlinks). Para asegurar que la copia desde la nube sea completa y funcional, ejecuta el siguiente comando de sincronización que incluye el parámetro <code>--copy-links</code>.
-                     <div class="command-box"><code id="f2_sqx_fix_sync">rclone sync "B2:xtrategyq-datos/trading/apps/sqx/linux" "$HOME/Desktop/TradingApps/SQX_Linux" --copy-links --progress</code><button class="copy-btn" onclick="copyCommand('f2_sqx_fix_sync')">Copiar</button></div>
+                     <div class="command-box"><code id="f2_sqx_fix_sync"></code><button class="copy-btn" onclick="copyCommand('f2_sqx_fix_sync')">Copiar</button></div>
                 </li>
                 <li><strong>Aplicar Permisos de "Sandbox":</strong><br>
                     Para evitar errores de arranque relacionados con la seguridad de la interfaz gráfica, aplica los permisos especiales necesarios con estos dos comandos.
-                     <div class="command-box"><code id="f2_sqx_fix_perms"># Cambiar el propietario a root
-sudo chown root:root "$HOME/Desktop/TradingApps/SQX_Linux/internal/electron/chrome-sandbox"
-
-# Cambiar los permisos
-sudo chmod 4755 "$HOME/Desktop/TradingApps/SQX_Linux/internal/electron/chrome-sandbox"</code><button class="copy-btn" onclick="copyCommand('f2_sqx_fix_perms')">Copiar</button></div>
+                     <div class="command-box"><code id="f2_sqx_fix_perms"></code><button class="copy-btn" onclick="copyCommand('f2_sqx_fix_perms')">Copiar</button></div>
                 </li>
                  <li><strong>Verificación Final:</strong><br>
                     ¡Listo! Ahora puedes iniciar StrategyQuant X y debería funcionar correctamente.</li>
