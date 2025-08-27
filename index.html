@@ -395,6 +395,29 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
             <div class="command-box"><code id="f2_reboot">sudo reboot</code><button class="copy-btn" onclick="copyCommand('f2_reboot')">Copiar</button></div>
             <p>Después del reinicio, verifica el acceso por SSH (`ssh ivan@<span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span>`) y Escritorio Remoto. El sistema debería ser un clon funcional y seguro de tu servidor de producción.</p>
 
+
+            <hr style="margin-top: 30px;">
+            <h4>2.10. Preparación Final de StrategyQuant X (Linux)</h4>
+            <div class="explanation" style="border-left-color: #fd7e14;">
+                <p>Después del reinicio final, el sistema base está listo. Ahora debes preparar la aplicación SQX asegurándote de que se descargue correctamente y tenga los permisos necesarios para ejecutarse en un entorno de servidor.</p>
+            </div>
+            <ol>
+                <li><strong>Descargar la Aplicación Corrigiendo Enlaces Simbólicos:</strong><br>
+                    La versión de Linux de SQX usa "enlaces simbólicos" (symlinks). Para asegurar que la copia desde la nube sea completa y funcional, ejecuta el siguiente comando de sincronización que incluye el parámetro <code>--copy-links</code>.
+                     <div class="command-box"><code id="f2_sqx_fix_sync">rclone sync "B2:xtrategyq-datos/trading/apps/sqx/linux" "$HOME/Desktop/TradingApps/SQX_Linux" --copy-links --progress</code><button class="copy-btn" onclick="copyCommand('f2_sqx_fix_sync')">Copiar</button></div>
+                </li>
+                <li><strong>Aplicar Permisos de "Sandbox":</strong><br>
+                    Para evitar errores de arranque relacionados con la seguridad de la interfaz gráfica, aplica los permisos especiales necesarios con estos dos comandos.
+                     <div class="command-box"><code id="f2_sqx_fix_perms"># Cambiar el propietario a root
+sudo chown root:root "$HOME/Desktop/TradingApps/SQX_Linux/internal/electron/chrome-sandbox"
+
+# Cambiar los permisos
+sudo chmod 4755 "$HOME/Desktop/TradingApps/SQX_Linux/internal/electron/chrome-sandbox"</code><button class="copy-btn" onclick="copyCommand('f2_sqx_fix_perms')">Copiar</button></div>
+                </li>
+                 <li><strong>Verificación Final:</strong><br>
+                    ¡Listo! Ahora puedes iniciar StrategyQuant X y debería funcionar correctamente.</li>
+            </ol>
+
         </details>
     </div>
     <div class="setup-box" id="symlinkSection" style="border: 2px dashed #0dcaf0;">
