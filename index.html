@@ -635,6 +635,29 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
             updateMoveCommand();
         }
         updateRestoreCommands();
+
+        // --- INICIO DE LA LÓGICA AÑADIDA ---
+        // Rellena los comandos de la solución de errores de SQX en Linux
+        const sqxSyncFixElem = document.getElementById('f2_sqx_fix_sync');
+        const sqxPermsFixElem = document.getElementById('f2_sqx_fix_perms');
+
+        if (sqxSyncFixElem && sqxPermsFixElem && syncTasks['sqx_app_linux']) {
+            const sqxLinuxTask = syncTasks['sqx_app_linux'];
+            const sqxRemotePath = sqxLinuxTask.remote;
+            const sqxLocalPath = sqxLinuxTask.local_kubuntu; // Usamos la ruta de kubuntu específicamente
+            
+            // Rellena el comando de sincronización
+            sqxSyncFixElem.innerText = `rclone sync "${sqxRemotePath}" "${sqxLocalPath}" --copy-links --progress`;
+
+            // Rellena los comandos de permisos
+            const sandboxPath = `${sqxLocalPath}/internal/electron/chrome-sandbox`;
+            sqxPermsFixElem.innerText = `# Cambiar el propietario a root
+sudo chown root:root "${sandboxPath}"
+
+# Cambiar los permisos
+sudo chmod 4755 "${sandboxPath}"`;
+        }
+        // --- FIN DE LA LÓGICA AÑADIDA ---
     }
 
     function updateCommands() {
