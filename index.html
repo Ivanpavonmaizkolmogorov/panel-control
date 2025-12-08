@@ -611,182 +611,155 @@ ssh-keygen -R <span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span>
 ssh root@<span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span></code><button class="copy-btn"
                                 onclick="copyCommand('f2_ssh_root')">Copiar</button></div>
                     </li>
+                    <li><strong>Instalar:</strong> Ejecuta <code>installimage</code>.
+                        <p class="danger"><strong>⚠️ CRÍTICO:</strong> Elige
+                            <strong>Ubuntu-2204-jammy-amd64-base</strong>.
+                        </p>
+                        <p>F10 -> Yes.</p>
+                    </li>
+                    <li><strong>Reiniciar:</strong> Cuando acabe, escribe <code>reboot</code>.
+                        <p><em>(Aquí esperamos 2 minutos a que arranque el Ubuntu nuevo).</em></p>
+                    </li>
+                    <li><strong>Reconectar:</strong> Al cambiar de sistema (Rescue -> Ubuntu), la huella del servidor
+                        cambia.
+                        <div class="command-box"><code id="f2_ssh_reconnect"># (En tu Mac) Limpia la clave antigua y reconecta
+ssh-keygen -R <span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span>
+ssh root@<span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span></code><button class="copy-btn"
+                                onclick="copyCommand('f2_ssh_reconnect')">Copiar</button></div>
+                    </li>
                 </ol>
 
-                <h4>2.2. Creación de tu Usuario e Instalación de Software</h4>
-                <div class="command-box"><code id="f2_create_user"># Instalar sudo y rclone (como root)
-apt-get update && apt-get install -y sudo rclone
-
-# Crear usuario y añadirlo a sudo
+                <h4>2.2. Preparación del Entorno (Usuario y Software)</h4>
+                <p>Es vital instalar el entorno gráfico <strong>ANTES</strong> de restaurar los datos para evitar
+                    conflictos.</p>
+                <div class="command-box"><code id="f2_prep_env"># 1. Crear usuario y añadirlo a sudo
 adduser ivan
 usermod -aG sudo ivan
-echo "ivan ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ivan</code><button class="copy-btn"
-                        onclick="copyCommand('f2_create_user')">Copiar</button></div>
+echo "ivan ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ivan
 
-                <h4>2.3. Instalación de tu Clave SSH</h4>
-                <ol>
-                    <li><strong>En tu Mac,</strong> obtén tu clave pública:
-                        <div class="command-box"><code id="f2_get_key">cat ~/.ssh/id_rsa.pub</code><button
-                                class="copy-btn" onclick="copyCommand('f2_get_key')">Copiar</button></div>
-                        <p style="font-size: 0.9em; margin-top: 5px;">Copia el resultado que salga en tu terminal y
-                            <strong>pégalo en el campo "Tu Clave Pública SSH"</strong> que está al principio de esta
-                            página.
-                        </p>
-                    </li>
-                    <li><strong>En el servidor (como `root`),</strong> prepara el archivo:
-                        <div class="command-box"><code id="f2_ssh_step1">mkdir -p /home/ivan/.ssh
-nano /home/ivan/.ssh/authorized_keys</code><button class="copy-btn"
-                                onclick="copyCommand('f2_ssh_step1')">Copiar</button></div>
-                    </li>
-                    <li><strong>Copia y Pega tu Clave:</strong>
-                        <p style="margin: 5px 0;">Pulsa el botón para copiar tu clave pública, pégala en
-                            <code>nano</code>, y guarda (Ctrl+X, Y, Enter).
-                        </p>
-                        <button class="action-btn copy" onclick="copyPublicKey()"
-                            style="width: 100%; margin-bottom: 10px;">📋 Copiar Clave Pública al Portapapeles</button>
-                    </li>
-                    <li><strong>Ajusta los permisos:</strong>
-                        <div class="command-box"><code id="f2_ssh_step2">chown -R ivan:ivan /home/ivan/.ssh
-chmod 700 /home/ivan/.ssh
-chmod 600 /home/ivan/.ssh/authorized_keys</code><button class="copy-btn"
-                                onclick="copyCommand('f2_ssh_step2')">Copiar</button></div>
-                    </li>
-                    <li><strong>Verificación:</strong> Cierra la sesión de `root` en el servidor (`exit`) y desde tu
-                        Mac, intenta entrar como `ivan` (`ssh ivan@<span
-                            class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span>`). Deberías entrar sin contraseña.</li>
-                </ol>
+# 2. Instalar TODAS las herramientas necesarias (incluido escritorio)
+apt-get update && apt-get install -y sudo rclone kubuntu-desktop xrdp</code><button class="copy-btn"
+                        onclick="copyCommand('f2_prep_env')">Copiar</button></div>
 
-                <h4>2.3.1. Verificación de Acceso</h4>
-                <div class="explanation" style="border-left-color: #fd7e14;">
-                    <p>Este es el paso más importante. Verifica que puedes entrar como <code>ivan</code> sin contraseña
-                        antes de continuar.</p>
-                </div>
-                <ol>
-                    <li><strong>En el servidor,</strong> cierra la sesión de `root`:
-                        <div class="command-box"><code id="f2_exit_root">exit</code><button class="copy-btn"
-                                onclick="copyCommand('f2_exit_root')">Copiar</button></div>
-                    </li>
-                    <li><strong>En tu Mac,</strong> intenta entrar como `ivan`:
-                        <div class="command-box"><code
-                                id="f2_ssh_ivan">ssh ivan@<span class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span></code><button
-                                class="copy-btn" onclick="copyCommand('f2_ssh_ivan')">Copiar</button></div>
-                    </li>
-                </ol>
-                <div class="warning">
-                    <p><strong>Si te pide contraseña:</strong> ¡Algo falló! Vuelve a conectarte como <code>root</code> y
-                        ejecuta de nuevo los comandos de la sección 2.3 para asegurar que los permisos
-                        (<code>chown</code>, <code>chmod</code>) son correctos.</p>
-                </div>
-                <h4>2.4. Descarga del Backup Específico</h4>
-                <p>Ahora, ya conectado como `ivan`, empieza la restauración.</p>
-                <p><strong>Comando de configuración de rclone:</strong></p>
-                <div class="command-box"><code id="f2_rclone_config"># Configura rclone (ya instalado en el paso 2.2)
-rclone config</code><button class="copy-btn" onclick="copyCommand('f2_rclone_config')">Copiar</button></div>
+                <h4>2.3. Configuración de Rclone y SSH</h4>
+                <p>Ejecuta <code>rclone config</code> y configura tus claves de Backblaze B2.</p>
+                <div class="command-box"><code id="f2_rclone_config_v2">rclone config</code><button class="copy-btn"
+                        onclick="copyCommand('f2_rclone_config_v2')">Copiar</button></div>
 
                 <div class="explanation">
-                    <p><strong>Asistente de Credenciales:</strong> Durante <code>rclone config</code>, te pedirá
-                        <code>account</code> (keyID) y <code>key</code> (applicationKey). Usa tus credenciales del PASO
-                        3:
-                    </p>
+                    <p><strong>Credenciales B2:</strong>
                     <ul>
                         <li><b>account (keyID):</b> <code id="b2_keyid_helper"></code></li>
                         <li><b>key (applicationKey):</b> <code id="b2_appkey_helper"></code></li>
                     </ul>
-                    <button class="action-btn clone" style="padding: 5px 10px; font-size: 0.9em;"
-                        onclick="copyB2CredsForWizard()">Copiar Credenciales para Asistente</button>
+                    </p>
                 </div>
 
-                <p><strong>Comandos de descarga (usa la fecha que definiste arriba). Dura unos 4 minutos:</strong></p>
-                <div class="command-box"><code
-                        id="f2_download"># Descarga los archivos de la fecha que definiste
-FECHA_A_RESTAURAR="<span class="placeholder-date">YYYY-MM-DD</span>"
-mkdir ~/backups
-rclone copy B2:xtrategyq-datos/backup_fiable/mi_backup_esencial-${FECHA_A_RESTAURAR}.tar.gz ~/backups/ --progress
-rclone copy B2:xtrategyq-datos/backup_fiable/lista_software-${FECHA_A_RESTAURAR}.txt ~/backups/ --progress</code><button class="copy-btn"
-                        onclick="copyCommand('f2_download')">Copiar</button></div>
+                <p>Instala tu clave SSH pública (opcional pero recomendado):</p>
+                <p>En tu Mac: <code>cat ~/.ssh/id_rsa.pub</code></p>
+                <p>En el servidor:</p>
+                <div class="command-box"><code id="f2_ssh_key_install">mkdir -p /home/ivan/.ssh
+nano /home/ivan/.ssh/authorized_keys # (Pega tu clave aquí)
+chown -R ivan:ivan /home/ivan/.ssh
+chmod 700 /home/ivan/.ssh && chmod 600 /home/ivan/.ssh/authorized_keys</code><button class="copy-btn"
+                        onclick="copyCommand('f2_ssh_key_install')">Copiar</button></div>
 
-                <h4>2.5. Restauración del Software</h4>
-                <div class="command-box"><code id="f2_restore_sw">FECHA_A_RESTAURAR="<span class="placeholder-date">YYYY-MM-DD</span>"
-sudo dpkg --set-selections < ~/backups/lista_software-${FECHA_A_RESTAURAR}.txt
-sudo apt-get dselect-upgrade -y</code><button class="copy-btn" onclick="copyCommand('f2_restore_sw')">Copiar</button>
-                </div>
+                <p style="margin-top: 10px;"><strong>Ayuda:</strong> Si necesitas copiar tu clave pública al
+                    portapapeles:</p>
+                <button class="action-btn copy" onclick="copyPublicKey()" style="width: 100%; margin-bottom: 15px;">📋
+                    Copiar Clave Pública al Portapapeles</button>
 
-                <h4>2.6. Restauración de Datos</h4>
-                <p class="warning"><strong>Aviso de Demora (6-10 minutos):</strong> Este paso de descompresión (usando
-                    `tar`) puede tardar bastante dependiendo del tamaño del backup.</p>
-                <div class="command-box"><code id="f2_restore_data">FECHA_A_RESTAURAR="<span class="placeholder-date">YYYY-MM-DD</span>"
-mkdir ~/backups/restauracion
-sudo tar -xvpzf ~/backups/mi_backup_esencial-${FECHA_A_RESTAURAR}.tar.gz -C ~/backups/restauracion/
-sudo cp -a ~/backups/restauracion/home/ivan/. /home/ivan/
-sudo chown -R ivan:ivan /home/ivan</code><button class="copy-btn"
-                        onclick="copyCommand('f2_restore_data')">Copiar</button></div>
-
-                <h4>2.7. Restauración de Servicios Críticos (Firewall y SQX)</h4>
-                <div class="command-box"><code id="f2_restore_services"># Firewall
-sudo cp -a ~/backups/restauracion/etc/ufw/. /etc/ufw/
-sudo chown -R root:root /etc/ufw
-
-# Servicios de SQX
-sudo cp ~/backups/restauracion/etc/systemd/system/sqx-*.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable sqx-network-setup.service
-sudo systemctl enable sqx-port-proxy.service</code><button class="copy-btn"
-                        onclick="copyCommand('f2_restore_services')">Copiar</button></div>
-
-                <h4>2.8. Configuración del Escritorio Remoto y Activación del Firewall</h4>
-                <p class="warning"><strong>Posible Interacción:</strong> Durante la instalación de
-                    <code>kubuntu-desktop</code>, si aparecen pantallas (al minuto) de configuración (de color morado o
-                    azul), usa la tecla <strong><code>Tab</code></strong> para moverte entre las opciones y
-                    <strong><code>Enter</code></strong> para confirmar. La duración total es de unos 4 minutos y hay que
-                    estar ATENTO porque hay que aceptar al final con un Y+enter.
+                <h4>2.4. Restauración Quirúrgica (Solo Datos)</h4>
+                <p>En lugar de machacar el sistema, descargamos el backup a una zona temporal y extraemos
+                    <strong>SOLO</strong>
+                    lo necesario.
                 </p>
-                <div class="command-box"><code id="f2_xrdp"># Instala los paquetes
-sudo apt-get install kubuntu-desktop -y
-sudo apt-get install xrdp -y
 
-# Configura la sesión
-echo "startplasma-x11" > ~/.xsession
+                <div class="command-box"><code id="f2_surgical_restore_v2"># 1. Crear directorio temporal y descargar backup
+FECHA_A_RESTAURAR="<span class="placeholder-date">YYYY-MM-DD</span>"
+mkdir -p /home/ivan/temp_restore
+rclone copy B2:xtrategyq-datos/backup_fiable/mi_backup_esencial-${FECHA_A_RESTAURAR}.tar.gz /home/ivan/temp_restore/ --progress
 
-# Abre los puertos y activa el firewall
-sudo ufw allow ssh          # Permite acceso por terminal
-sudo ufw allow 3389/tcp     # Permite acceso por Escritorio Remoto
-sudo ufw enable             # Activa el firewall con todas tus reglas
+# 2. Extraer SOLO lo necesario (Usando --wildcards para asegurar que encuentra los servicios)
+# Extraer Home
+tar -xvpzf /home/ivan/temp_restore/mi_backup_esencial-${FECHA_A_RESTAURAR}.tar.gz -C /home/ivan/temp_restore/ home/ivan
+# Extraer Servicios y Firewall
+tar -xvpzf /home/ivan/temp_restore/mi_backup_esencial-${FECHA_A_RESTAURAR}.tar.gz -C /home/ivan/temp_restore/ --wildcards "etc/systemd/system/sqx*" "etc/ufw/*"
 
-# Reinicia el servicio de escritorio
-sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand('f2_xrdp')">Copiar</button></div>
+# 3. Colocar las piezas en su sitio
+# Datos de usuario
+cp -a /home/ivan/temp_restore/home/ivan/. /home/ivan/
+chown -R ivan:ivan /home/ivan
 
-                <h4>2.9. Reinicio Final y Verificación</h4>
-                <div class="command-box"><code id="f2_reboot">sudo reboot</code><button class="copy-btn"
-                        onclick="copyCommand('f2_reboot')">Copiar</button></div>
-                <p>Después del reinicio, verifica el acceso por SSH (`ssh ivan@<span
-                        class="placeholder-ip">IP_DEL_NUEVO_SERVIDOR</span>`) y Escritorio Remoto. El sistema debería
-                    ser un clon funcional y seguro de tu servidor de producción.</p>
+# Servicios y Firewall
+sudo cp -r /home/ivan/temp_restore/etc/ufw/* /etc/ufw/
+sudo cp /home/ivan/temp_restore/etc/systemd/system/sqx* /etc/systemd/system/</code><button class="copy-btn"
+                        onclick="copyCommand('f2_surgical_restore_v2')">Copiar</button></div>
+
+                <h4>2.5. Activación Final y Limpieza</h4>
+                <div class="command-box"><code id="f2_final_activation"># 1. Encender los motores de SQX (Licencia y Red) con AUTO-CORRECCIÓN
+# Detectar interfaz real y corregir el servicio
+CURRENT_IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
+sudo sed -i "s/dev [a-z0-9]*/dev $CURRENT_IFACE/g" /etc/systemd/system/sqx-network-setup.service
+
+# Recargar y reiniciar TODO el circuito de licencia
+systemctl daemon-reload
+systemctl enable sqx-network-setup.service
+systemctl enable sqx-port-proxy.service
+systemctl restart sqx-network-setup.service
+systemctl restart sqx-port-proxy.service
+
+# 2. Configurar arranque de sesión gráfica BLINDADO
+# Paramos XRDP para configurar
+systemctl stop xrdp
+
+# Aseguramos paquetes
+apt-get install -y kubuntu-desktop xorgxrdp
+
+# Borrar configs viejas que causan pantalla negra
+rm -f /home/ivan/.Xauthority /home/ivan/.xsession-errors
+
+# Crear script de arranque compatible
+echo "unset DBUS_SESSION_BUS_ADDRESS" > /home/ivan/.xsession
+echo "unset XDG_RUNTIME_DIR" >> /home/ivan/.xsession
+echo "startplasma-x11" >> /home/ivan/.xsession
+
+# Asegurar permisos correctos (CRÍTICO)
+chown ivan:ivan /home/ivan/.xsession
+chown -R ivan:ivan /home/ivan/.ssh
+chown ivan:ivan /home/ivan/.Xauthority 2>/dev/null
+
+# 3. Configurar Firewall y reiniciar escritorio remoto
+ufw allow ssh
+ufw allow 3389/tcp
+ufw --force enable
+systemctl start xrdp
+
+# 4. Limpieza final
+rm -rf /home/ivan/temp_restore</code><button class="copy-btn"
+                        onclick="copyCommand('f2_final_activation')">Copiar</button></div>
+
+                <h4>2.6. Verificación Final</h4>
+                <p>Ya puedes abrir <strong>Microsoft Remote Desktop</strong>, conectar a la IP con el usuario
+                    <code>ivan</code>
+                    y verificar que tu StrategyQuant funciona correctamente.
+                </p>
+
+                <h4>2.7. Preparación Final de StrategyQuant X (Linux)</h4>
+                <p>Una vez dentro, descargamos la APLICACIÓN (no los datos de símbolos, que ya están en el backup).
+                </p>
+                <div class="command-box"><code id="f2_sqx_app_download"># Descargar la APP SQX (versión Linux con symlinks)
+rclone sync "B2:xtrategyq-datos/trading/apps/sqx/linux" "$HOME/Desktop/SQX_142_linux" --copy-links --progress
+
+# Aplicar Permisos de "Sandbox" (Necesario para que arranque)
+sudo chown root:root "$HOME/Desktop/SQX_142_linux/internal/electron/chrome-sandbox"
+sudo chmod 4755 "$HOME/Desktop/SQX_142_linux/internal/electron/chrome-sandbox"</code><button class="copy-btn"
+                        onclick="copyCommand('f2_sqx_app_download')">Copiar</button></div>
+                <p>Con esto queda niquelado. Ahora sí, ejecuta ese último paso de descargar la App y a disfrutar del
+                    servidor. 🚀</p>
 
 
-                <hr style="margin-top: 30px;">
-                <h4>2.10. Preparación Final de StrategyQuant X (Linux)</h4>
-                <div class="explanation" style="border-left-color: #fd7e14;">
-                    <p>Después del reinicio final, el sistema base está listo. Ahora debes preparar la aplicación SQX
-                        asegurándote de que se descargue correctamente y tenga los permisos necesarios para ejecutarse
-                        en un entorno de servidor.</p>
-                </div>
-                <ol>
-                    <li><strong>Descargar la Aplicación Corrigiendo Enlaces Simbólicos:</strong><br>
-                        La versión de Linux de SQX usa "enlaces simbólicos" (symlinks). Para asegurar que la copia desde
-                        la nube sea completa y funcional, ejecuta el siguiente comando de sincronización que incluye el
-                        parámetro <code>--copy-links</code>.
-                        <div class="command-box"><code id="f2_sqx_fix_sync"></code><button class="copy-btn"
-                                onclick="copyCommand('f2_sqx_fix_sync')">Copiar</button></div>
-                    </li>
-                    <li><strong>Aplicar Permisos de "Sandbox":</strong><br>
-                        Para evitar errores de arranque relacionados con la seguridad de la interfaz gráfica, aplica los
-                        permisos especiales necesarios con estos dos comandos.
-                        <div class="command-box"><code id="f2_sqx_fix_perms"></code><button class="copy-btn"
-                                onclick="copyCommand('f2_sqx_fix_perms')">Copiar</button></div>
-                    </li>
-                    <li><strong>Verificación Final:</strong><br>
-                        ¡Listo! Ahora puedes iniciar StrategyQuant X y debería funcionar correctamente.</li>
-                </ol>
+
 
             </details>
         </div>
@@ -1679,8 +1652,10 @@ sudo systemctl restart xrdp</code><button class="copy-btn" onclick="copyCommand(
             // Update B2 Helper
             const keyID = document.getElementById('keyID').value || 'tu_keyID (del PASO 3)';
             const appKey = document.getElementById('applicationKey').value || 'tu_applicationKey (del PASO 3)';
-            document.getElementById('b2_keyid_helper').innerText = keyID;
-            document.getElementById('b2_appkey_helper').innerText = appKey;
+            const b2KeyIdHelper = document.getElementById('b2_keyid_helper');
+            const b2AppKeyHelper = document.getElementById('b2_appkey_helper');
+            if (b2KeyIdHelper) b2KeyIdHelper.innerText = keyID;
+            if (b2AppKeyHelper) b2AppKeyHelper.innerText = appKey;
         }
 
         function updateMoveCommand() {
