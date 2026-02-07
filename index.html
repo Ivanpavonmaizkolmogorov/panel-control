@@ -305,17 +305,7 @@
         </div>
     </div>
 
-    <script>
-        // Define global callbacks for Google Scripts
-        function gapiLoaded() {
-            if (window.initializeGapiClient) window.initializeGapiClient();
-        }
-        function gisLoaded() {
-            if (window.initializeGisClient) window.initializeGisClient();
-        }
-    </script>
-    <script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
-    <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
+
 
     <div class="container">
 
@@ -803,8 +793,7 @@ sudo chmod 4755 "$HOME/Desktop/SQX_142_linux/internal/electron/chrome-sandbox"</
             if (window.initializeGisClient) window.initializeGisClient();
         }
     </script>
-    <script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
-    <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
+
 
     <script>
         // 1. Integración de Google Drive
@@ -1595,8 +1584,8 @@ sudo chmod 4755 "$HOME/Desktop/SQX_142_linux/internal/electron/chrome-sandbox"</
             const localPath = document.getElementById('localPath').value;
             const remotePath = document.getElementById('remotePath').value;
             const deletePath = document.getElementById('deletePath').value;
-            document.getElementById('syncUpCommand').innerText = `${rcloneExecutable} sync "${localPath}" "${remotePath}" --progress --create-empty-src-dirs --b2-hard-delete --exclude "venv/**" --exclude "__pycache__/**" --exclude ".*"`;
-            document.getElementById('syncDownCommand').innerText = `${rcloneExecutable} sync "${remotePath}" "${localPath}" --progress --create-empty-src-dirs --b2-hard-delete --exclude "venv/**" --exclude "__pycache__/**" --exclude ".*"`;
+            document.getElementById('syncUpCommand').innerText = `${rcloneExecutable} sync "${localPath}" "${remotePath}" --progress --create-empty-src-dirs --b2-hard-delete --exclude "venv/**" --exclude "__pycache__/**" --exclude ".*" --exclude "*.log"`;
+            document.getElementById('syncDownCommand').innerText = `${rcloneExecutable} sync "${remotePath}" "${localPath}" --progress --create-empty-src-dirs --b2-hard-delete --exclude "venv/**" --exclude "__pycache__/**" --exclude ".*" --exclude "*.log"`;
             document.getElementById('configCommand').innerText = `${rcloneExecutable} config`;
             document.getElementById('keyIdDisplay').innerText = document.getElementById('keyID').value || 'tu_keyID';
             document.getElementById('appKeyDisplay').innerText = document.getElementById('applicationKey').value ||
@@ -1883,6 +1872,9 @@ sudo chmod 4755 "$HOME/Desktop/SQX_142_linux/internal/electron/chrome-sandbox"</
         };
     </script>
 
+    <!-- Scripts de carga de Google API al final para asegurar que las funciones globales estén definidas -->
+    <script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
+    <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
 </body>
 
 </html>
